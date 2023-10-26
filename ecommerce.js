@@ -1,142 +1,129 @@
-const loadProducts = async () => {
-  try {
-    const response = await fetch("https://fakestoreapi.com/products");
-    const products = await response.json();
-    createProducts(products);
-  } catch (error) {
-    console.error("Failed to fetch products:", error);
+// Define a Product class
+class Product {
+  constructor(id, title, price, image) {
+    this.id = id;
+    this.title = title;
+    this.price = price;
+    this.image = image;
   }
-};
+}
 
+// Define a ShoppingCart class
+class ShoppingCart {
+  constructor() {
+    this.cart = [];
+    this.cartItemsList = document.getElementById("cartItems");
+    this.cartTotal = document.getElementById("cartTotal");
+    this.clearCartButton = document.getElementById("clearCartButton");
 
-loadProducts();
-// Display products on the site
-const createProducts = (products) => {
-  const productsContainer = document.getElementById("products");
-  productsContainer.innerHTML = "";
+    this.clearCartButton.addEventListener("click", () => this.clearCart());
 
-  products.forEach((product) => {
-    const productDiv = document.createElement("div");
-    productDiv.className = "product";
+    this.updateCart();
+  }
 
-    const image = document.createElement("img");
-    image.src = product.image;
-    image.alt = product.title;
-    image.onclick = () => createProductDetails(product);
+  addProduct(product) {
+    const existingItem = this.cart.find(
+      (item) => item.product.id === product.id
+    );
 
-    const title = document.createElement("h4");
-    title.textContent = product.title;
-
-    const price = document.createElement("p");
-    price.textContent = `$${product.price.toFixed(2)}`;
-
-    const cart = document.createElement("button");
-    cart.classList.add("buy-button");
-    cart.innerHTML = "Add to cart";
-    cart.onclick = () => {
-    cart.add(product);
-    console.log("Product added to cart:", product);
+    if (existingItem) {
+      existingItem.quantity++;
+    } else {
+      this.cart.push({ product, quantity: 1 });
     }
 
-    productDiv.appendChild(image);
-    productDiv.appendChild(title);
-    productDiv.appendChild(price);
-    productDiv.appendChild(cart);
+    this.updateCart();
+  }
 
-    productsContainer.appendChild(productDiv);
+  removeProduct(productId) {
+    this.cart = this.cart.filter((item) => item.product.id !== productId);
+    this.updateCart();
+  }
+
+  clearCart() {
+    this.cart = [];
+    this.updateCart();
+  }
+
+  updateCart() {
+    this.cartItemsList.innerHTML = "";
+    let total = 0;
+
+    this.cart.forEach((item) => {
+      const cartItem = document.createElement("li");
+      cartItem.classList.add("list-group-item");
+      cartItem.innerHTML = `
+                ${item.product.title} x${item.quantity} - $${(
+        item.product.price * item.quantity
+      ).toFixed(2)}
+                <button data-product-id="${
+                  item.product.id
+                }" class="btn btn-danger remove-from-cart">Remove</button>
+            `;
+      this.cartItemsList.appendChild(cartItem);
+
+      const removeButton = cartItem.querySelector(".remove-from-cart");
+      removeButton.addEventListener("click", () =>
+        this.removeProduct(item.product.id)
+      );
+
+      total += item.product.price * item.quantity;
+    });
+
+    this.cartTotal.textContent = total.toFixed(2);
+  }
+}
+
+// Fetch products from the API
+async function fetchProducts() {
+  try {
+    const response = await fetch("https://fakestoreapi.com/products");
+    const productsData = await response.json();
+    const products = productsData.map(
+      (productData) =>
+        new Product(
+          productData.id,
+          productData.title,
+          productData.price,
+          productData.image
+        )
+    );
+    displayProducts(products);
+  } catch (error) {
+    console.error("Error fetching products:", error);
+  }
+}
+
+// Display products
+function displayProducts(products) {
+  const productsContainer = document.getElementById("products");
+  productsContainer.innerHTML = "";
+  products.forEach((product) => {
+    const productElement = document.createElement("div");
+    productElement.classList.add("col-lg-4");
+    productElement.innerHTML = `
+            <div class="card mb-3 ">
+                <img src="${product.image}" class="card-img-top" alt="${
+      product.title
+    }">
+                <div class="card-body">
+                    <h5 class="card-title">${product.title}</h5>
+                    <p class="card-text">$${product.price.toFixed(2)}</p>
+                    <button data-product-id="${
+                      product.id
+                    }" class="btn btn-primary add-to-cart">Add to Cart</button>
+                </div>
+            </div>
+        `;
+    productsContainer.appendChild(productElement);
+
+    const addToCartButton = productElement.querySelector(".add-to-cart");
+    addToCartButton.addEventListener("click", () =>
+      shoppingCart.addProduct(product)
+    );
   });
-};
+}
 
-// ... Your Cart class and other functions ...
-
-// Display product details when a product is clicked
-const createProductDetails = (product) => {
-  const detailsContainer = document.getElementsById("products");
-  detailsContainer.innerHTML = "";
-
-  const image = document.createElement("img");
-  image.src = product.image;
-  image.alt = product.title;
-
-  const title = document.createElement("h2");
-  title.textContent = product.title;
-
-  const price = document.createElement("p");
-  price.textContent = `$${product.price.toFixed(2)}`;
-
-  const description = document.createElement("p");
-  description.textContent = product.description;
-
-  const addToCartButton = document.getElementsByClassName("buy-button");
-  addToCartButton.textContent = "Add to Cart";
-  addToCartButton.onclick = () => {
-    cart.add(product);
-    console.log("Product added to cart:", product);
-    console.log("Cart total:", cart.getTotal());
-    createCart();
-  };
-
-  detailsContainer.appendChild(image);
-  detailsContainer.appendChild(title);
-  detailsContainer.appendChild(price);
-  detailsContainer.appendChild(description);
-  detailsContainer.appendChild(addToCartButton);
-
-  detailsContainer.style.display = "block";
-  document.getElementById("products").style.display = "none";
-};
-createProductDetails();
-
-// Create cart items and total
-const createCart = () => {
-  const cartItemsContainer = document.getElementById("cart-items");
-  cartItemsContainer.innerHTML = "";
-
-  /*cart_items.forEach((item) => {
-    const cartItemDiv = document.createElement("div");
-
-    const title = document.createElement("span");
-    title.textContent = item.title;
-
-    const price = document.createElement("span");
-    price.textContent = `$${item.price.toFixed(2)}`;
-
-    const removeButton = document.createElement("button");
-    removeButton.textContent = "Remove";
-    removeButton.onclick = () => {
-      cart.remove(item.id);
-      console.log("Product removed from cart:", item);
-      console.log("Cart total:", cart.getTotal());
-      createCart();
-};
-
-    cartItemDiv.appendChild(title);
-    cartItemDiv.appendChild(price);
-    cartItemDiv.appendChild(removeButton);
-
-    cartItemsContainer.appendChild(cartItemDiv);
-  });
-
-
-  document.getElementById("cart-total").textContent = cart.getTotal();
-  */
-};
-
-// Clear cart
-const clearCart = () => {
-  cart.clear();
-  console.log("Cart cleared");
-  createCart();
-};
-
-// ... Rest of your code ...
-
-// Load products when the site loads
-window.onload = () => {
-  loadProducts();
-  createCart();
-};
-
-
-
-
+// Initialize the app
+const shoppingCart = new ShoppingCart();
+fetchProducts();
